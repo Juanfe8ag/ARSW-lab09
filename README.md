@@ -65,9 +65,9 @@ A corto plazo sí, porque reduce el tiempo de cálculo. Sin embargo, tiene un l�
 
 9. ¿Qué pasa con la infraestructura cuando cambia el tamaño de la VM? ¿Qué efectos negativos implica?
 
-1. Downtime: El servicio estará fuera de línea durante varios minutos.
-2. Costo: El precio por hora aumenta significativamente.
-3. Persistencia: Si no hay IP estática, la dirección pública podría cambiar.
+Downtime: El servicio estará fuera de línea durante varios minutos.
+Costo: El precio por hora aumenta significativamente.
+Persistencia: Si no hay IP estática, la dirección pública podría cambiar.
 
 10. ¿Hubo mejora en el consumo de CPU o en los tiempos de respuesta? Si/No ¿Por qué?
 
@@ -82,97 +82,52 @@ Al subir a 4 ejecuciones paralelas en una VM con pocos núcleos, el rendimiento 
 
 ### Parte 2 - Escalabilidad horizontal
 
-#### Crear el Balanceador de Carga
-
-Antes de continuar puede eliminar el grupo de recursos anterior para evitar gastos adicionales y realizar la actividad en un grupo de recursos totalmente limpio.
-
-1. El Balanceador de Carga es un recurso fundamental para habilitar la escalabilidad horizontal de nuestro sistema, por eso en este paso cree un balanceador de carga dentro de Azure tal cual como se muestra en la imágen adjunta.
-
-![](images/part2/part2-lb-create.png)
-
-2. A continuación cree un *Backend Pool*, guiese con la siguiente imágen.
-
-![](images/part2/part2-lb-bp-create.png)
-
-3. A continuación cree un *Health Probe*, guiese con la siguiente imágen.
-
-![](images/part2/part2-lb-hp-create.png)
-
-4. A continuación cree un *Load Balancing Rule*, guiese con la siguiente imágen.
-
-![](images/part2/part2-lb-lbr-create.png)
-
-5. Cree una *Virtual Network* dentro del grupo de recursos, guiese con la siguiente imágen.
-
-![](images/part2/part2-vn-create.png)
-
-#### Crear las maquinas virtuales (Nodos)
-
-Ahora vamos a crear 3 VMs (VM1, VM2 y VM3) con direcciones IP públicas standar en 3 diferentes zonas de disponibilidad. Después las agregaremos al balanceador de carga.
-
-1. En la configuración básica de la VM guíese por la siguiente imágen. Es importante que se fije en la "Avaiability Zone", donde la VM1 será 1, la VM2 será 2 y la VM3 será 3.
-
-![](images/part2/part2-vm-create1.png)
-
-2. En la configuración de networking, verifique que se ha seleccionado la *Virtual Network*  y la *Subnet* creadas anteriormente. Adicionalmente asigne una IP pública y no olvide habilitar la redundancia de zona.
-
-![](images/part2/part2-vm-create2.png)
-
-3. Para el Network Security Group seleccione "avanzado" y realice la siguiente configuración. No olvide crear un *Inbound Rule*, en el cual habilite el tráfico por el puerto 3000. Cuando cree la VM2 y la VM3, no necesita volver a crear el *Network Security Group*, sino que puede seleccionar el anteriormente creado.
-
-![](images/part2/part2-vm-create3.png)
-
-4. Ahora asignaremos esta VM a nuestro balanceador de carga, para ello siga la configuración de la siguiente imágen.
-
-![](images/part2/part2-vm-create4.png)
-
-5. Finalmente debemos instalar la aplicación de Fibonacci en la VM. para ello puede ejecutar el conjunto de los siguientes comandos, cambiando el nombre de la VM por el correcto
-
-```
-git clone https://github.com/daprieto1/ARSW_LOAD-BALANCING_AZURE.git
-
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
-source /home/vm1/.bashrc
-nvm install node
-
-cd ARSW_LOAD-BALANCING_AZURE/FibonacciApp
-npm install
-
-npm install forever -g
-forever start FibonacciApp.js
-```
-
-Realice este proceso para las 3 VMs, por ahora lo haremos a mano una por una, sin embargo es importante que usted sepa que existen herramientas para aumatizar este proceso, entre ellas encontramos Azure Resource Manager, OsDisk Images, Terraform con Vagrant y Paker, Puppet, Ansible entre otras.
-
-#### Probar el resultado final de nuestra infraestructura
-
-1. Porsupuesto el endpoint de acceso a nuestro sistema será la IP pública del balanceador de carga, primero verifiquemos que los servicios básicos están funcionando, consuma los siguientes recursos:
-
-```
-http://52.155.223.248/
-http://52.155.223.248/fibonacci/1
-```
-
-2. Realice las pruebas de carga con `newman` que se realizaron en la parte 1 y haga un informe comparativo donde contraste: tiempos de respuesta, cantidad de peticiones respondidas con éxito, costos de las 2 infraestrucruras, es decir, la que desarrollamos con balanceo de carga horizontal y la que se hizo con una maquina virtual escalada.
-
-3. Agregue una 4 maquina virtual y realice las pruebas de newman, pero esta vez no lance 2 peticiones en paralelo, sino que incrementelo a 4. Haga un informe donde presente el comportamiento de la CPU de las 4 VM y explique porque la tasa de éxito de las peticiones aumento con este estilo de escalabilidad.
-
-```
-newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10 &
-newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10 &
-newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10 &
-newman run ARSW_LOAD-BALANCING_AZURE.postman_collection.json -e [ARSW_LOAD-BALANCING_AZURE].postman_environment.json -n 10
-```
-
 **Preguntas**
 
 * ¿Cuáles son los tipos de balanceadores de carga en Azure y en qué se diferencian?, ¿Qué es SKU, qué tipos hay y en qué se diferencian?, ¿Por qué el balanceador de carga necesita una IP pública?
+
+Azure Load Balancer: Trabaja en la Capa 4 (TCP/UDP). Es ideal para tráfico de red puro.
+
+Application Gateway: Trabaja en la Capa 7 (HTTP/HTTPS). Entiende URLs y cookies (ideal para aplicaciones web).
+
+El Stock Keeping Unit define las capacidades y el precio del recurso. Por último, se necesita una IP pública porque es el punto único de entrada para los usuarios. En lugar de que el usuario intente conectarse a la IP de la VM1 o VM2, se conecta a la IP del Balanceador, y este decide a qué VM enviarlo. Sin IP pública, el balanceador sería invisible desde internet.
+
 * ¿Cuál es el propósito del *Backend Pool*?
+
+Contiene las direcciones IP de las VMs que están listas para recibir tráfico.
+
 * ¿Cuál es el propósito del *Health Probe*?
+
+Revisa constantemente si las VMs están vivas. Si una VM deja de responder, el balanceador deja de enviarle tráfico automáticamente.
+
 * ¿Cuál es el propósito de la *Load Balancing Rule*? ¿Qué tipos de sesión persistente existen, por qué esto es importante y cómo puede afectar la escalabilidad del sistema?.
+
+Define por qué puerto entra el tráfico (ej. 80) y a qué puerto del backend debe enviarse (ej. 8080).
+
+Tipos: None (petición balanceada al azar), Client IP (misma IP, misma VM), o Client IP and Protocol.
+
+Importancia: Es vital si la aplicación guarda datos en la memoria local de la VM.
+
+Efecto en escalabilidad: Si los usuarios son obligados a quedarse en una VM específica, se puede sobrecargar una máquina mientras las otras están libres, rompiendo el equilibrio del sistema.
+
 * ¿Qué es una *Virtual Network*? ¿Qué es una *Subnet*? ¿Para qué sirven los *address space* y *address range*?
+
+Virtual Network (VNet): Tu parcela privada en la nube de Azure. Es una red lógica aislada.
+
+Subnet: Una subdivisión de la VNet. Sirve para organizar recursos (ej. una subred para servidores web y otra para bases de datos).
+
+Address Space: El rango total de IPs de la VNet.
+
+Address Range: El rango específico asignado a una Subnet.
+
 * ¿Qué son las *Availability Zone* y por qué seleccionamos 3 diferentes zonas?. ¿Qué significa que una IP sea *zone-redundant*?
+
+Son centros de datos físicos separados dentro de una misma región. Se seleccionan 3 zonas diferentes para tema de disponibilidad, es decir, si la máquina 1 falla, la máquina 2 se levanta y sigue la ejecución. Que sea zone-redundant significa que la misma IP está en las diferentes zonas para que pueda ser dirigido a ellas.
+
 * ¿Cuál es el propósito del *Network Security Group*?
+
+Su propósito es la seguridad perimetral. Es una tabla de reglas que permite o deniega el paso.
+
 * Informe de newman 1 (Punto 2)
 * Presente el Diagrama de Despliegue de la solución.
 
